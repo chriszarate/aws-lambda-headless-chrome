@@ -8,7 +8,7 @@ let options;
 let debug = () => {};
 
 function extractChrome() {
-  return decompress(path.resolve(__dirname, './chrome-headless-lambda-linux-x64.tar.gz'), `${options.tmpDir}/`);
+  return decompress(path.resolve(__dirname, '../chrome-headless-lambda-linux-x64.tar.gz'), `${options.tmpDir}/`);
 }
 
 function waitForChrome() {
