@@ -1,0 +1,14 @@
+{
+  "name": "lambda-headless-chrome",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "aws-sdk": "^2.52.0",
+    "chrome-remote-interface": "^0.22.0",
+    "decompress": "^4.2.0",
+    "got": "^6.7.1"
+  }
+}
