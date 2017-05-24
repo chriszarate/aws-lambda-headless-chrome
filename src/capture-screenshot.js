@@ -1,4 +1,3 @@
-const cdp = require('chrome-remote-interface');
 const config = require('../config');
 const crypto = require('crypto');
 const injectStylesheet = require('./inject-stylesheet');
@@ -7,10 +6,11 @@ const { delay } = require('./utils');
 
 // Set up viewport resolution, etc.
 const deviceMetrics = {
-  width: 1024,
+  deviceScaleFactor: 1,
+  fitWindow: true,
   height: 1000,
   mobile: false,
-  fitWindow: true,
+  width: 1000,
 };
 
 function saveBufferToS3(buffer, url) {
@@ -30,51 +30,44 @@ function saveBufferToS3(buffer, url) {
   return saveImage(s3Params);
 }
 
-function captureScreenshot(url) {
+function captureScreenshot(client, url) {
   return new Promise((resolve, reject) => {
-    cdp({ port: config.chrome.headlessPort }, client => {
-      const { Emulation, Page, Runtime } = client;
-      const timeout = setTimeout(reject, config.chrome.pageLoadTimeout);
+    const { Emulation, Page, Runtime } = client;
+    const timeout = setTimeout(reject, config.chrome.pageLoadTimeout);
 
-      const doInjection = () => Runtime.evaluate({
-        expression: injectStylesheet('inject/css/override.css'),
-      });
+    const doInjection = () => Runtime.evaluate({
+      expression: injectStylesheet('inject/css/override.css'),
+    });
 
-      const getScreenshotBuffer = () => {
-        console.log('Taking screenshot....');
-        return Page.captureScreenshot(config.screenshot).then(screenshot => Buffer.from(screenshot.data, 'base64'));
-      };
+    const getScreenshotBuffer = () => {
+      console.log('Taking screenshot....');
+      return Page.captureScreenshot(config.screenshot).then(screenshot => Buffer.from(screenshot.data, 'base64'));
+    };
 
-      const saveBuffer = buffer => {
-        saveBufferToS3(buffer, url).then(s3Response => {
-          clearTimeout(timeout);
-          client.close().then(() => {
-            resolve(s3Response);
-          });
+    const saveBuffer = buffer => {
+      saveBufferToS3(buffer, url).then(s3Response => {
+        clearTimeout(timeout);
+        client.close().then(() => {
+          resolve(s3Response);
         });
-      };
-
-      cdp.Version((err, info) => {
-        console.log('CDP version info', err, info);
       });
+    };
 
-      // Add some delays to allow scripts and injected stylesheets to settle.
-      Page.loadEventFired(() => {
-        delay(1000)()
-          .then(doInjection)
-          .then(delay(config.screenshot.timeout))
-          .then(getScreenshotBuffer)
-          .then(saveBuffer);
-      });
+    // Add some delays to allow scripts and injected stylesheets to settle.
+    Page.loadEventFired(() => {
+      delay(1000)()
+        .then(doInjection)
+        .then(delay(config.screenshot.timeout))
+        .then(getScreenshotBuffer)
+        .then(saveBuffer);
+    });
 
-      [
-        Page.enable(),
-        Runtime.enable(),
-        Emulation.setDeviceMetricsOverride(deviceMetrics),
-        Emulation.setVisibleSize({ width: deviceMetrics.width, height: deviceMetrics.height }),
-        Page.navigate({ url }),
-      ].reduce((p, fn) => p.then(fn), Promise.resolve());
-    }).on('error', reject);
+    [
+      Page.enable(),
+      Runtime.enable(),
+      Emulation.setDeviceMetricsOverride(deviceMetrics),
+      Page.navigate({ url }),
+    ].reduce((p, fn) => p.then(fn), Promise.resolve());
   });
 }
 
