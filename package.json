@@ -1,0 +1,13 @@
+{
+  "name": "lambda-chrome",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "chrome-remote-interface": "^0.22.0",
+    "decompress": "^4.2.0",
+    "got": "^6.7.1"
+  }
+}
